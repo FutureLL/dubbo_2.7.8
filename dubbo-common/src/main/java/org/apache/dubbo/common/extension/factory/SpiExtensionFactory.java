@@ -27,9 +27,12 @@ public class SpiExtensionFactory implements ExtensionFactory {
 
     @Override
     public <T> T getExtension(Class<T> type, String name) {
+        // 判断当前 type 是否是 SPI 接口
         if (type.isInterface() && type.isAnnotationPresent(SPI.class)) {
             ExtensionLoader<T> loader = ExtensionLoader.getExtensionLoader(type);
+            // 若当前 type 的扩展类(不包含 adaptive 与 wrapper)不为空,则获取该类型的 adaptive 代理类,进行自适应获取
             if (!loader.getSupportedExtensions().isEmpty()) {
+                // 返回 adaptive 代理类
                 return loader.getAdaptiveExtension();
             }
         }

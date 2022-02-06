@@ -87,7 +87,9 @@ public class AdaptiveClassCodeGenerator {
      * generate and return class code
      */
     public String generate() {
+
         // no need to generate adaptive class since there's no adaptive method found.
+        // 判断当前 type 接口中是否存在添加 @Adaptive 注解方法
         if (!hasAdaptiveMethod()) {
             throw new IllegalStateException("No adaptive method exist on extension " + type.getName() + ", refuse to create the adaptive class!");
         }
@@ -95,6 +97,7 @@ public class AdaptiveClassCodeGenerator {
         StringBuilder code = new StringBuilder();
         code.append(generatePackageInfo());
         code.append(generateImports());
+        // 生成的代理类: com.future.dubbo.service.Hello$Adaptive
         code.append(generateClassDeclaration());
 
         Method[] methods = type.getMethods();

@@ -36,12 +36,21 @@ public class AdaptiveCompiler implements Compiler {
     public Class<?> compile(String code, ClassLoader classLoader) {
         Compiler compiler;
         ExtensionLoader<Compiler> loader = ExtensionLoader.getExtensionLoader(Compiler.class);
-        String name = DEFAULT_COMPILER; // copy reference
+        // copy reference
+        // 获取用户指定的扩展名
+        String name = DEFAULT_COMPILER;
+        // 若用户指定了扩展名,则获取用户指定的 compiler,否则获取默认的 compiler
         if (name != null && name.length() > 0) {
             compiler = loader.getExtension(name);
         } else {
+            // 默认的 compiler,即 javassistCompiler
             compiler = loader.getDefaultExtension();
         }
+        /**
+         * 默认调用存在 @SPI 注解中配置的类 @SPI("javassist")
+         * 调用 javassistCompiler 类,父类的 compile() 方法
+         * @see AbstractCompiler#compile(java.lang.String, java.lang.ClassLoader)
+         */
         return compiler.compile(code, classLoader);
     }
 

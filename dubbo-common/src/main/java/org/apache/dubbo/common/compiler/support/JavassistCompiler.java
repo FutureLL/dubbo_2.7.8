@@ -40,6 +40,8 @@ public class JavassistCompiler extends AbstractCompiler {
 
     @Override
     public Class<?> doCompile(String name, String source) throws Throwable {
+
+        // 创建一个 CtClassBuilder
         CtClassBuilder builder = new CtClassBuilder();
         builder.setClassName(name);
 
@@ -78,6 +80,7 @@ public class JavassistCompiler extends AbstractCompiler {
 
         // compile
         ClassLoader classLoader = org.apache.dubbo.common.utils.ClassUtils.getCallerClassLoader(getClass());
+        // 通过 ctClassBuilder 构建出一个 CtClass,即编译的实现
         CtClass cls = builder.build(classLoader);
         return cls.toClass(classLoader, JavassistCompiler.class.getProtectionDomain());
     }
