@@ -848,6 +848,7 @@ public class ExtensionLoader<T> {
     private void initExtension(T instance) {
         if (instance instanceof Lifecycle) {
             Lifecycle lifecycle = (Lifecycle) instance;
+            // 初始化两个 Map: externalConfigurationMap、appExternalConfigurationMap
             lifecycle.initialize();
         }
     }

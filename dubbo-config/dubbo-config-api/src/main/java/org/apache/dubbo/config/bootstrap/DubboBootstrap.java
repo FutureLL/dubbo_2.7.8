@@ -516,21 +516,29 @@ public class DubboBootstrap extends GenericEventListener {
             return;
         }
 
+        // 初始化 FrameworkExt
         ApplicationModel.initFrameworkExts();
 
+        // 启动配置中心
         startConfigCenter();
 
+        // 加载 Registry 和 Protocol
         loadRemoteConfigs();
 
+        // 检查相关配置
         checkGlobalConfigs();
 
+        // 启动元数据中心
         // @since 2.7.8
         startMetadataCenter();
 
+        // 初始化元数据服务
         initMetadataService();
 
+        // 初始化元数据导出服务
         initMetadataServiceExports();
 
+        // 初始化事件监听
         initEventListener();
 
         if (logger.isInfoEnabled()) {
@@ -618,8 +626,17 @@ public class DubboBootstrap extends GenericEventListener {
         }
 
         if (CollectionUtils.isNotEmpty(configCenters)) {
+            // Dubbo 是支持配置多个配置中心的,为了便于管理,Dubbo 提供了 CompositeDynamicConfiguration 类来聚合多个动态的配置中心,底层采用 HashSet 存储
             CompositeDynamicConfiguration compositeDynamicConfiguration = new CompositeDynamicConfiguration();
             for (ConfigCenterConfig configCenter : configCenters) {
+                /**
+                 * prepareEnvironment(): 准备不同环境,例如: Zookeeper
+                 *
+                 * 聚合之前,需要将 ConfigCenterConfig 转换成 DynamicConfiguration,方法是 prepareEnvironment().
+                 * 这里会根据动态中心的 URL 协议通过 SPI 机制加载对应的 DynamicConfiguration,
+                 * 例如使用 Zookeeper 作为配置中心,对应的就是 ZookeeperDynamicConfigurationFactory 了。
+                 * 另外,这里还会直接读取配置中心的内容,并保存到环境对象 Environment 中。
+                 */
                 compositeDynamicConfiguration.addConfiguration(prepareEnvironment(configCenter));
             }
             environment.setDynamicConfiguration(compositeDynamicConfiguration);
@@ -888,6 +905,7 @@ public class DubboBootstrap extends GenericEventListener {
     }
 
     /**
+     * dubbo 启动
      * Start the bootstrap
      */
     public DubboBootstrap start() {
@@ -898,16 +916,18 @@ public class DubboBootstrap extends GenericEventListener {
                 logger.info(NAME + " is starting...");
             }
             // 1. export Dubbo Services
+            // TODO 服务暴露
             exportServices();
 
             // Not only provider register
             if (!isOnlyRegisterProvider() || hasExportedServices()) {
                 // 2. export MetadataService
                 exportMetadataService();
-                //3. Register the local ServiceInstance if required
+                // 3. Register the local ServiceInstance if required
                 registerServiceInstance();
             }
 
+            // TODO 服务引用
             referServices();
             if (asyncExportingFutures.size() > 0) {
                 new Thread(() -> {
@@ -991,6 +1011,12 @@ public class DubboBootstrap extends GenericEventListener {
         return ready.get();
     }
 
+    /**
+     * dubbo 停止
+     *
+     * @return
+     * @throws IllegalStateException
+     */
     public DubboBootstrap stop() throws IllegalStateException {
         destroy();
         return this;
@@ -1027,24 +1053,32 @@ public class DubboBootstrap extends GenericEventListener {
     /* serve for builder apis, end */
 
     private DynamicConfiguration prepareEnvironment(ConfigCenterConfig configCenter) {
+        // 检查 address、protocol 的合法性
         if (configCenter.isValid()) {
+            // 已经初始化的就不再初始化
             if (!configCenter.checkOrUpdateInited()) {
                 return null;
             }
+            // 得到的动态配置,一般情况下获取到的是 ZookeeperDynamicConfigurationFactory
+            // 根据 url 协议加载动态配置中心 ZookeeperDynamicConfigurationFactory
+            // 获取配置中心
             DynamicConfiguration dynamicConfiguration = getDynamicConfiguration(configCenter.toUrl());
+            // 读取配置内容(共享配置)
             String configContent = dynamicConfiguration.getProperties(configCenter.getConfigFile(), configCenter.getGroup());
 
+            // 当前应用独占配置
             String appGroup = getApplication().getName();
             String appConfigContent = null;
             if (isNotEmpty(appGroup)) {
                 appConfigContent = dynamicConfiguration.getProperties
-                        (isNotEmpty(configCenter.getAppConfigFile()) ? configCenter.getAppConfigFile() : configCenter.getConfigFile(),
-                                appGroup
-                        );
+                        (isNotEmpty(configCenter.getAppConfigFile()) ? configCenter.getAppConfigFile() : configCenter.getConfigFile(), appGroup);
             }
             try {
+                // 是否为最高优先级
                 environment.setConfigCenterFirst(configCenter.isHighestPriority());
+                // 把 configContent 的 Properties 格式转为 map 并存入 externalConfigurationMap
                 environment.updateExternalConfigurationMap(parseProperties(configContent));
+                // 把 appConfigContent 的 Properties 格式转为 map 并存入 appExternalConfigurationMap
                 environment.updateAppExternalConfigurationMap(parseProperties(appConfigContent));
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to parse configurations from Config Center.", e);
@@ -1087,6 +1121,7 @@ public class DubboBootstrap extends GenericEventListener {
     }
 
     private void exportServices() {
+        // configManager 是在 spring 加载 bd 到 new 的时候将 sc 加入进来
         configManager.getServices().forEach(sc -> {
             // TODO, compatible with ServiceConfig.export()
             ServiceConfig serviceConfig = (ServiceConfig) sc;
@@ -1095,11 +1130,13 @@ public class DubboBootstrap extends GenericEventListener {
             if (exportAsync) {
                 ExecutorService executor = executorRepository.getServiceExporterExecutor();
                 Future<?> future = executor.submit(() -> {
+                    // sc 就是 dubbo: service 对应的 bean 类型
                     sc.export();
                     exportedServices.add(sc);
                 });
                 asyncExportingFutures.add(future);
             } else {
+                // sc 就是 dubbo: service 对应的 bean 类型
                 sc.export();
                 exportedServices.add(sc);
             }

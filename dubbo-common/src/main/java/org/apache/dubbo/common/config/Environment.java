@@ -47,13 +47,19 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
 
     private boolean configCenterFirst = true;
 
+    /** 动态配置,聚合了配置中心 */
     private DynamicConfiguration dynamicConfiguration;
 
     public Environment() {
+        // dubbo.properties 文件配置
         this.propertiesConfiguration = new PropertiesConfiguration();
+        // JVM 环境变量
         this.systemConfiguration = new SystemConfiguration();
+        // 系统环境变量
         this.environmentConfiguration = new EnvironmentConfiguration();
+        // 配置中心-全局配置 --- 对应 externalConfigurationMap Map 中的值
         this.externalConfiguration = new InmemoryConfiguration();
+        // 配置中心-app全局配置 --- 对应 appExternalConfigurationMap Map 中的值
         this.appExternalConfiguration = new InmemoryConfiguration();
     }
 
@@ -68,6 +74,7 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
             }
         });
 
+        // 给 externalConfiguration、appExternalConfiguration 两个对象赋值
         this.externalConfiguration.setProperties(externalConfigurationMap);
         this.appExternalConfiguration.setProperties(appExternalConfigurationMap);
     }
@@ -115,6 +122,7 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
     public synchronized CompositeConfiguration getPrefixedConfiguration(AbstractConfig config) {
         CompositeConfiguration prefixedConfiguration = new CompositeConfiguration(config.getPrefix(), config.getId());
         Configuration configuration = new ConfigConfigurationAdapter(config);
+        // 配置中心优先,两者顺序不同
         if (this.isConfigCenterFirst()) {
             // The sequence would be: SystemConfiguration -> AppExternalConfiguration -> ExternalConfiguration -> AbstractConfig -> PropertiesConfiguration
             // Config center has the highest priority
@@ -123,6 +131,7 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
             prefixedConfiguration.addConfiguration(appExternalConfiguration);
             prefixedConfiguration.addConfiguration(externalConfiguration);
             prefixedConfiguration.addConfiguration(configuration);
+            // 从 dubbo.properties 文件中获取
             prefixedConfiguration.addConfiguration(propertiesConfiguration);
         } else {
             // The sequence would be: SystemConfiguration -> AbstractConfig -> AppExternalConfiguration -> ExternalConfiguration -> PropertiesConfiguration

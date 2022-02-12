@@ -25,6 +25,8 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 
 /**
+ * ApplicationListener 触发服务暴露与引用
+ *
  * The {@link ApplicationListener} for {@link DubboBootstrap}'s lifecycle when the {@link ContextRefreshedEvent}
  * and {@link ContextClosedEvent} raised
  *
@@ -55,10 +57,20 @@ public class DubboBootstrapApplicationListener extends OneTimeExecutionApplicati
         }
     }
 
+    /**
+     * dubbo 启动
+     *
+     * @param event
+     */
     private void onContextRefreshedEvent(ContextRefreshedEvent event) {
         dubboBootstrap.start();
     }
 
+    /**
+     * dubbo 停止
+     *
+     * @param event
+     */
     private void onContextClosedEvent(ContextClosedEvent event) {
         dubboBootstrap.stop();
     }

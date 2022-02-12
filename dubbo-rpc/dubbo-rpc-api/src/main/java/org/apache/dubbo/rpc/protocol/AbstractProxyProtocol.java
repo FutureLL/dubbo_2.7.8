@@ -84,6 +84,10 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
                 return exporter;
             }
         }
+        /**
+         * 调用子类的 doExport()
+         * @see org.apache.dubbo.rpc.protocol.http.HttpProtocol#doExport
+         */
         final Runnable runnable = doExport(proxyFactory.getProxy(invoker, true), invoker.getInterface(), invoker.getUrl());
         exporter = new AbstractExporter<T>(invoker) {
             @Override

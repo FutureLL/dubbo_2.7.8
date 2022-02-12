@@ -260,10 +260,14 @@ public abstract class AbstractConfig implements Serializable {
         } catch (NoSuchMethodException e) {
             getter = clazz.getMethod("is" + propertyName);
         }
+        // getXxx/isXxx 方法上是否带有 @Parameter 注解
         Parameter parameter = getter.getAnnotation(Parameter.class);
+        // 如果存在,则使用注解配置的 key
         if (parameter != null && StringUtils.isNotEmpty(parameter.key()) && parameter.useKeyAsProperty()) {
             propertyName = parameter.key();
-        } else {
+        }
+        // 如果不存在,则使用 getXxx/isXxx 中的 Xxx 作为 propertyName
+        else {
             propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
         }
         return propertyName;
@@ -461,25 +465,32 @@ public abstract class AbstractConfig implements Serializable {
     }
 
     public void refresh() {
+        // 通过 Environment 获取 ConfigClass 前缀的 CompositeConfiguration,它是一个组合配置,底层用有序的 List 存储,Environment 会根据优先级编排该 List,越靠前的配置优先级越高,获取属性值时只需要遍历 List 即可
+        // 如此一来,Config 对象就可以根据配置的优先级完成属性的 refresh 了
         Environment env = ApplicationModel.getEnvironment();
         try {
+            // 获取前缀配置
             CompositeConfiguration compositeConfiguration = env.getPrefixedConfiguration(this);
             // loop methods, get override value and set the new value back to method
             Method[] methods = getClass().getMethods();
             for (Method method : methods) {
                 if (MethodUtils.isSetter(method)) {
                     try {
+                        /**
+                         * 从配置项取出对应的值
+                         * @see CompositeConfiguration#getInternalProperty(java.lang.String)
+                         */
                         String value = StringUtils.trim(compositeConfiguration.getString(extractPropertyName(getClass(), method)));
                         // isTypeMatch() is called to avoid duplicate and incorrect update, for example, we have two 'setGeneric' methods in ReferenceConfig.
                         if (StringUtils.isNotEmpty(value) && ClassUtils.isTypeMatch(method.getParameterTypes()[0], value)) {
+                            // 再将值设置进去
                             method.invoke(this, ClassUtils.convertPrimitive(method.getParameterTypes()[0], value));
                         }
                     } catch (NoSuchMethodException e) {
-                        logger.info("Failed to override the property " + method.getName() + " in " +
-                                this.getClass().getSimpleName() +
-                                ", please make sure every property has getter/setter method provided.");
+                        logger.info("Failed to override the property " + method.getName() + " in " + this.getClass().getSimpleName() + ", please make sure every property has getter/setter method provided.");
                     }
                 } else if (isParametersSetter(method)) {
+                    // 从配置项取出对应的值
                     String value = StringUtils.trim(compositeConfiguration.getString(extractPropertyName(getClass(), method)));
                     if (StringUtils.isNotEmpty(value)) {
                         Map<String, String> map = invokeGetParameters(getClass(), this);

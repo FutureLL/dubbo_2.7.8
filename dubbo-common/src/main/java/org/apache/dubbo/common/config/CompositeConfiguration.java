@@ -34,6 +34,7 @@ public class CompositeConfiguration implements Configuration {
     private String prefix;
 
     /**
+     * 包含所有配置的列表
      * List holding all the configuration
      */
     private List<Configuration> configList = new LinkedList<Configuration>();
@@ -76,6 +77,7 @@ public class CompositeConfiguration implements Configuration {
     @Override
     public Object getInternalProperty(String key) {
         Configuration firstMatchingConfiguration = null;
+        // 循环所有配置的列表(包含顺序)
         for (Configuration config : configList) {
             try {
                 if (config.containsKey(key)) {
@@ -87,6 +89,7 @@ public class CompositeConfiguration implements Configuration {
             }
         }
         if (firstMatchingConfiguration != null) {
+            // 返回匹配第一个所对应 key 的属性值
             return firstMatchingConfiguration.getProperty(key);
         } else {
             return null;

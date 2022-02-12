@@ -40,15 +40,16 @@ public class PropertiesConfiguration implements Configuration {
             orderedPropertiesProviders.add(propertiesProviderExtensionLoader.getExtension(propertiesProviderName));
         }
 
-        //order the propertiesProvider according the priority descending
+        // order the propertiesProvider according the priority descending
         orderedPropertiesProviders.sort((OrderedPropertiesProvider a, OrderedPropertiesProvider b) -> {
             return b.priority() - a.priority();
         });
 
-        //load the default properties
+        // 从文件中将数据翻译成 Properties 对象
+        // load the default properties,一般情况下为 dubbo.properties 文件
         Properties properties = ConfigUtils.getProperties();
 
-        //override the properties.
+        // override the properties.
         for (OrderedPropertiesProvider orderedPropertiesProvider :
                 orderedPropertiesProviders) {
             properties.putAll(orderedPropertiesProvider.initProperties());

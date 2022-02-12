@@ -125,7 +125,12 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         // org.apache.dubbo.config.spring.extension.SpringExtensionFactory.ShutdownHookListener
     }
 
-    // merged from dubbox
+    /**
+     * merged from dubbox
+     *
+     * @param ref
+     * @return
+     */
     @Override
     protected Class getServiceClass(T ref) {
         if (AopUtils.isAopProxy(ref)) {

@@ -150,8 +150,17 @@ public class ProtocolFilterWrapper implements Protocol {
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         if (UrlUtils.isRegistry(invoker.getUrl())) {
+            // 调用下一个协议
             return protocol.export(invoker);
         }
+        /**
+         * 调用 HttpProtocol 父类 AbstractProxyProtocol 的 export() 方法
+         * buildInvokerChain(): 构建一个新的 Invoke
+         * protocol.export() 这里会调用 HttpProtocol#export
+         * @see org.apache.dubbo.rpc.protocol.http.HttpProtocol
+         * --->
+         * @see AbstractProxyProtocol#export(org.apache.dubbo.rpc.Invoker)
+         */
         return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER));
     }
 

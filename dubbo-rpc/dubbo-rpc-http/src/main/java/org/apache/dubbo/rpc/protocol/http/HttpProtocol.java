@@ -20,6 +20,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.remoting.RemotingServer;
 import org.apache.dubbo.remoting.http.HttpBinder;
 import org.apache.dubbo.remoting.http.HttpHandler;
+import org.apache.dubbo.remoting.http.tomcat.TomcatHttpBinder;
 import org.apache.dubbo.rpc.ProtocolServer;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
@@ -91,6 +92,7 @@ public class HttpProtocol extends AbstractProxyProtocol {
 
                 RpcContext.getContext().setRemoteAddress(request.getRemoteAddr(), request.getRemotePort());
                 try {
+                    // 处理请求 & 结果返回
                     skeleton.handle(request.getInputStream(), response.getOutputStream());
                 } catch (Throwable e) {
                     throw new ServletException(e);
@@ -104,9 +106,16 @@ public class HttpProtocol extends AbstractProxyProtocol {
 
     @Override
     protected <T> Runnable doExport(final T impl, Class<T> type, URL url) throws RpcException {
+        // 获取到地址
         String addr = getAddr(url);
         ProtocolServer protocolServer = serverMap.get(addr);
         if (protocolServer == null) {
+            /**
+             * 根据 url 找到对应的 bind() ---> Tomcat 启动
+             * @see TomcatHttpBinder#bind(org.apache.dubbo.common.URL, org.apache.dubbo.remoting.http.HttpHandler)
+             *
+             * InternalHandler: 接收请求处理器,也就是 Tomcat 启动之后 InternalHandler 来处理请求
+             */
             RemotingServer remotingServer = httpBinder.bind(url, new InternalHandler(url.getParameter("cors", false)));
             serverMap.put(addr, new ProxyProtocolServer(remotingServer));
         }

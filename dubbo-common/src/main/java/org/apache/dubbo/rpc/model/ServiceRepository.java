@@ -60,8 +60,7 @@ public class ServiceRepository extends LifecycleAdapter implements FrameworkExt 
     }
 
     public ServiceDescriptor registerService(Class<?> interfaceClazz) {
-        return services.computeIfAbsent(interfaceClazz.getName(),
-                _k -> new ServiceDescriptor(interfaceClazz));
+        return services.computeIfAbsent(interfaceClazz.getName(), _k -> new ServiceDescriptor(interfaceClazz));
     }
 
     /**
@@ -111,13 +110,8 @@ public class ServiceRepository extends LifecycleAdapter implements FrameworkExt 
 
     }
 
-    public void registerProvider(String serviceKey,
-                                 Object serviceInstance,
-                                 ServiceDescriptor serviceModel,
-                                 ServiceConfigBase<?> serviceConfig,
-                                 ServiceMetadata serviceMetadata) {
-        ProviderModel providerModel = new ProviderModel(serviceKey, serviceInstance, serviceModel, serviceConfig,
-                serviceMetadata);
+    public void registerProvider(String serviceKey, Object serviceInstance, ServiceDescriptor serviceModel, ServiceConfigBase<?> serviceConfig, ServiceMetadata serviceMetadata) {
+        ProviderModel providerModel = new ProviderModel(serviceKey, serviceInstance, serviceModel, serviceConfig, serviceMetadata);
         providers.putIfAbsent(serviceKey, providerModel);
         providersWithoutGroup.putIfAbsent(keyWithoutGroup(serviceKey), providerModel);
     }

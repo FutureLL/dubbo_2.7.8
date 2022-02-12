@@ -52,6 +52,17 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
         Version.checkDuplicate(DubboNamespaceHandler.class);
     }
 
+    /**
+     * 对标签中名字为 application 的进行解析,这里 dubbo 使用了统一的 DubboBeanDefinitionParser 进行解析。
+     * DubboBeanDefinitionParser 实现了 BeanDefinitionParser 接口,实现 parse 方法对标签进行解析。
+     * @see DubboBeanDefinitionParser#parse(org.w3c.dom.Element, org.springframework.beans.factory.xml.ParserContext, java.lang.Class, boolean)
+     * 将解析之后的标签变成 Spring 中的一个 Bean 对象。
+     * application 对应一个 ApplicationConfig.
+     * 在执行完 init() 方法之后,Spring 会得到所有的下面这个10个 handler.
+     *
+     * xml 解析初始,bean 对象里面的属性的值,初始值。
+     * 设置父节点的值。
+     */
     @Override
     public void init() {
         registerBeanDefinitionParser("application", new DubboBeanDefinitionParser(ApplicationConfig.class, true));

@@ -33,6 +33,7 @@ import java.lang.annotation.Target;
  * <p>
  * Note : {@link EnableDubbo} must base on Spring Framework 4.2 and above
  *
+ * @author futurelwy
  * @see DubboComponentScan
  * @see EnableDubboConfig
  * @since 2.5.8

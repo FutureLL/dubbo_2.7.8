@@ -236,7 +236,11 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedRegistered(url);
         removeFailedUnregistered(url);
         try {
-            // Sending a registration request to the server side
+            /**
+             * Sending a registration request to the server side
+             * 向服务器端发送注册请求
+             * @see org.apache.dubbo.registry.zookeeper.ZookeeperRegistry#doRegister(org.apache.dubbo.common.URL)
+             */
             doRegister(url);
         } catch (Exception e) {
             Throwable t = e;
