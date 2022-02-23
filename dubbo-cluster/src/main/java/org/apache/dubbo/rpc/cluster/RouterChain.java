@@ -47,13 +47,17 @@ public class RouterChain<T> {
     }
 
     private RouterChain(URL url) {
+        // 通过 Dubbo SPI 获取获取到所有激活的 RouterFactory
+        // 条件路由,应用条件路由,服务条件路由,标签路由等
         List<RouterFactory> extensionFactories = ExtensionLoader.getExtensionLoader(RouterFactory.class)
                 .getActivateExtension(url, "router");
 
+        // 将 RouterFactory 中转换为 Router
         List<Router> routers = extensionFactories.stream()
                 .map(factory -> factory.getRouter(url))
                 .collect(Collectors.toList());
 
+        // 初始化 routers 并进行排序
         initWithRouters(routers);
     }
 

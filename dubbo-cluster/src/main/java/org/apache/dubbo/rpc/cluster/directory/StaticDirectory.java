@@ -30,6 +30,8 @@ import java.util.List;
 
 /**
  * StaticDirectory
+ * 静态的,invokers 不会变
+ * @see StaticDirectory#invokers
  */
 public class StaticDirectory<T> extends AbstractDirectory<T> {
     private static final Logger logger = LoggerFactory.getLogger(StaticDirectory.class);

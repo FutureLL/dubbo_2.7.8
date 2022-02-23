@@ -23,6 +23,9 @@ import org.apache.dubbo.rpc.cluster.RouterFactory;
 
 /**
  * Application level router factory
+ * 应用条件路由
+ *
+ * 设置优先级: this.priority = APP_ROUTER_DEFAULT_PRIORITY = 150;
  */
 @Activate(order = 200)
 public class AppRouterFactory implements RouterFactory {

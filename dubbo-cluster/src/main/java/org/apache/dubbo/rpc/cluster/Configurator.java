@@ -74,8 +74,7 @@ public interface Configurator extends Comparable<Configurator> {
             return Optional.empty();
         }
 
-        ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
-                .getAdaptiveExtension();
+        ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getAdaptiveExtension();
 
         List<Configurator> configurators = new ArrayList<>(urls.size());
         for (URL url : urls) {

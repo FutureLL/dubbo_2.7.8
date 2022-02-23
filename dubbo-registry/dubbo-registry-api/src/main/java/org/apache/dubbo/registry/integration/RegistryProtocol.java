@@ -392,6 +392,7 @@ public class RegistryProtocol implements Protocol {
 
     protected URL getRegistryUrl(URL url) {
         return URLBuilder.from(url)
+                // 重新改变协议
                 .setProtocol(url.getParameter(REGISTRY_KEY, DEFAULT_REGISTRY))
                 .removeParameter(REGISTRY_KEY)
                 .build();
@@ -462,6 +463,7 @@ public class RegistryProtocol implements Protocol {
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        // 获取 url
         url = getRegistryUrl(url);
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
@@ -470,6 +472,7 @@ public class RegistryProtocol implements Protocol {
 
         // group="a,b" or group="*"
         Map<String, String> qs = StringUtils.parseQueryString(url.getParameterAndDecoded(REFER_KEY));
+        // 获取配置的 group
         String group = qs.get(GROUP_KEY);
         if (group != null && group.length() > 0) {
             if ((COMMA_SPLIT_PATTERN.split(group)).length > 1 || "*".equals(group)) {
@@ -478,23 +481,53 @@ public class RegistryProtocol implements Protocol {
         }
 
         Cluster cluster = Cluster.getCluster(qs.get(CLUSTER_KEY));
+        // 调用 doRefer 继续执行服务引用逻辑
         return doRefer(cluster, registry, type, url);
     }
 
+    /**
+     * dubbo 完成了对服务目录的创建和调用
+     *
+     * @param cluster
+     * @param registry
+     * @param type
+     * @param url
+     * @param <T>
+     * @return
+     */
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        // 创建 RegistryDirectory 实例 --- 服务目录
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
+        // 设置注册中心和协议
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getConsumerUrl().getParameters());
+        // 生成服务消费者订阅的 URL,供后面使用
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
+        // 判断是否需要注册,在创建 RegistryDirectory 对象时给 shouldRegister 属性写入值
         if (directory.isShouldRegister()) {
+            // 设置消费者URL
             directory.setRegisteredConsumerUrl(subscribeUrl);
+            // 注册
             registry.register(directory.getRegisteredConsumerUrl());
         }
+        // 建立路由规则链,即解析并设置了 routerChain 属性
+        /**
+         * 下边四个信息是消费端需要坚挺的目录:
+         * 1. 条件路由
+         *      1.1 针对单个服务      config/dubbo/com.future.dubbo.service.Hello::.condition-router
+         *      1.2 针对单个应用
+         * 2. 标签路由               config/dubbo/provider.tag-router
+         * 3. 动态配置               config/dubbo/com.future.dubbo.service.Hello::.configurators
+         * 4. 服务提供者地址信息       com.future.dubbo.service.Hello/providers/
+         */
         directory.buildRouterChain(subscribeUrl);
+        // 订阅 providers,configurators,routers 节点数据
         directory.subscribe(toSubscribeUrl(subscribeUrl));
 
+        // 包装机器容错机制到 invoker
+        // 一个注册中心可能有多个服务提供者,因此这里需要将多个服务提供者合并为一
         Invoker<T> invoker = cluster.join(directory);
         List<RegistryProtocolListener> listeners = findRegistryProtocolListeners(url);
         if (CollectionUtils.isEmpty(listeners)) {
@@ -503,6 +536,7 @@ public class RegistryProtocol implements Protocol {
 
         RegistryInvokerWrapper<T> registryInvokerWrapper = new RegistryInvokerWrapper<>(directory, cluster, invoker);
         for (RegistryProtocolListener listener : listeners) {
+            // 监听
             listener.onRefer(this, registryInvokerWrapper);
         }
         return registryInvokerWrapper;
@@ -529,6 +563,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     private static URL toSubscribeUrl(URL url) {
+        // 订阅的目录 providers,configurators,routers
         return url.addParameter(CATEGORY_KEY, PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY);
     }
 
@@ -647,8 +682,7 @@ public class RegistryProtocol implements Protocol {
         public synchronized void notify(List<URL> urls) {
             logger.debug("original override urls: " + urls);
 
-            List<URL> matchedUrls = getMatchedUrls(urls, subscribeUrl.addParameter(CATEGORY_KEY,
-                    CONFIGURATORS_CATEGORY));
+            List<URL> matchedUrls = getMatchedUrls(urls, subscribeUrl.addParameter(CATEGORY_KEY, CONFIGURATORS_CATEGORY));
             logger.debug("subscribe url: " + subscribeUrl + ", override urls: " + matchedUrls);
 
             // No matching results

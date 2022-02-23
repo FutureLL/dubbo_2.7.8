@@ -40,6 +40,7 @@ public class ConditionRuleParser {
     public static ConditionRouterRule parse(String rawRule) {
         Constructor constructor = new Constructor(ConditionRouterRule.class);
 
+        // yaml 格式解析
         Yaml yaml = new Yaml(constructor);
         ConditionRouterRule rule = yaml.load(rawRule);
         rule.setRawRule(rawRule);

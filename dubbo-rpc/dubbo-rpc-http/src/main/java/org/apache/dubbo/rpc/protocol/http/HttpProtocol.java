@@ -16,6 +16,7 @@
  */
 package org.apache.dubbo.rpc.protocol.http;
 
+import org.aopalliance.intercept.MethodInvocation;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.remoting.RemotingServer;
 import org.apache.dubbo.remoting.http.HttpBinder;
@@ -34,6 +35,7 @@ import org.apache.dubbo.rpc.service.GenericService;
 import org.apache.dubbo.rpc.support.ProtocolUtils;
 import org.springframework.remoting.RemoteAccessException;
 import org.springframework.remoting.support.RemoteInvocation;
+import org.springframework.remoting.support.RemoteInvocationFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -136,25 +138,36 @@ public class HttpProtocol extends AbstractProxyProtocol {
     protected <T> T doRefer(final Class<T> serviceType, URL url) throws RpcException {
         final String generic = url.getParameter(GENERIC_KEY);
         final boolean isGeneric = ProtocolUtils.isGeneric(generic) || serviceType.equals(GenericService.class);
+        /********* com.googlecode.jsonrpc4j.spring.JsonProxyFactoryBean 创建代理对象过程【rpc-client】 **************/
         JsonProxyFactoryBean jsonProxyFactoryBean = new JsonProxyFactoryBean();
         JsonRpcProxyFactoryBean jsonRpcProxyFactoryBean = new JsonRpcProxyFactoryBean(jsonProxyFactoryBean);
-        jsonRpcProxyFactoryBean.setRemoteInvocationFactory((methodInvocation) -> {
-            RemoteInvocation invocation = new JsonRemoteInvocation(methodInvocation);
-            if (isGeneric) {
-                invocation.addAttribute(GENERIC_KEY, generic);
+        jsonRpcProxyFactoryBean.setRemoteInvocationFactory(new RemoteInvocationFactory() {
+            @Override
+            public RemoteInvocation createRemoteInvocation(MethodInvocation methodInvocation) {
+                RemoteInvocation invocation = new JsonRemoteInvocation(methodInvocation);
+                if (isGeneric) {
+                    invocation.addAttribute(GENERIC_KEY, generic);
+                }
+                return invocation;
             }
-            return invocation;
         });
         String key = url.setProtocol("http").toIdentityString();
         if (isGeneric) {
             key = key + "/" + GENERIC_KEY;
         }
 
+        // 指定服务路径
         jsonRpcProxyFactoryBean.setServiceUrl(key);
+        // 指定服务接口
         jsonRpcProxyFactoryBean.setServiceInterface(serviceType);
 
         jsonProxyFactoryBean.afterPropertiesSet();
+        // 创建客户端代理类,该代理类实现 RPC 接口,并返回
+        // Protocol#refer 方法返回值类型为 Invoker
+        // AbstractProxyProtocol 会将 proxy 转成 Invoker 对象
+        // DubboProtocol 服务引用方法没有创建接口实现代理类
         return (T) jsonProxyFactoryBean.getObject();
+        /********* com.googlecode.jsonrpc4j.spring.JsonProxyFactoryBean 创建代理对象过程【rpc-client】 **************/
     }
 
     protected int getErrorCode(Throwable e) {

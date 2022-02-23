@@ -27,6 +27,7 @@ import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.common.utils.UrlUtils;
 import org.apache.dubbo.registry.NotifyListener;
 import org.apache.dubbo.registry.Registry;
+import org.apache.dubbo.registry.integration.RegistryDirectory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -398,8 +399,7 @@ public abstract class AbstractRegistry implements Registry {
         if (listener == null) {
             throw new IllegalArgumentException("notify listener == null");
         }
-        if ((CollectionUtils.isEmpty(urls))
-                && !ANY_VALUE.equals(url.getServiceInterface())) {
+        if ((CollectionUtils.isEmpty(urls)) && !ANY_VALUE.equals(url.getServiceInterface())) {
             logger.warn("Ignore empty notify urls for subscribe url " + url);
             return;
         }
@@ -408,6 +408,7 @@ public abstract class AbstractRegistry implements Registry {
         }
         // keep every provider's category.
         Map<String, List<URL>> result = new HashMap<>();
+        // 获取 category 列表,providers,routers,configurators
         for (URL u : urls) {
             if (UrlUtils.isMatch(url, u)) {
                 String category = u.getParameter(CATEGORY_KEY, DEFAULT_CATEGORY);
@@ -420,9 +421,15 @@ public abstract class AbstractRegistry implements Registry {
         }
         Map<String, List<URL>> categoryNotified = notified.computeIfAbsent(url, u -> new ConcurrentHashMap<>());
         for (Map.Entry<String, List<URL>> entry : result.entrySet()) {
+            // providers,routers,configurators 中的一个
             String category = entry.getKey();
             List<URL> categoryList = entry.getValue();
             categoryNotified.put(category, categoryList);
+            /**
+             * 还记得刚开始的时候,listener 参数么,这里 listener 是 RegistryDirectory
+             * 通知
+             * @see RegistryDirectory#notify(java.util.List)
+             */
             listener.notify(categoryList);
             // We will update our cache file after each notification.
             // When our Registry has a subscribe failure due to network jitter, we can return at least the existing cache URL.

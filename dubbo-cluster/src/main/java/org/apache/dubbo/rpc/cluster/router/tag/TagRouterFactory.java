@@ -23,6 +23,15 @@ import org.apache.dubbo.rpc.cluster.Router;
 
 /**
  * Tag router factory
+ * 标签路由
+ *
+ * TagRouterFactory 没有 getRouter() 方法,实现的是父类 CacheableRouterFactory 的 getRouter(),
+ * 该方法中又会调用子类的 createRouter() 方法
+ * @see TagRouterFactory#createRouter(org.apache.dubbo.common.URL)
+ *
+ * TagRouter extends AbstractRouter implements ConfigurationListener
+ *
+ * 设置优先级: this.priority = TAG_ROUTER_DEFAULT_PRIORITY = 100;
  */
 @Activate(order = 100)
 public class TagRouterFactory extends CacheableRouterFactory {

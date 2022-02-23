@@ -29,6 +29,9 @@ import static org.apache.dubbo.common.config.configcenter.DynamicConfigurationFa
 import static org.apache.dubbo.common.extension.ExtensionLoader.getExtensionLoader;
 
 /**
+ * 动态配置中心
+ * 监听 Zookeeper 中的 config 目录
+ *
  * Dynamic Configuration
  * <br/>
  * From the use scenario internally inside framework, there're mainly three kinds of methods:

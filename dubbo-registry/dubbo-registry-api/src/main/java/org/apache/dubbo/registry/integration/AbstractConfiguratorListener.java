@@ -45,6 +45,7 @@ public abstract class AbstractConfiguratorListener implements ConfigurationListe
         ruleRepository.addListener(key, this);
         String rawConfig = ruleRepository.getRule(key, DynamicConfiguration.DEFAULT_GROUP);
         if (!StringUtils.isEmpty(rawConfig)) {
+            // 从原始规则生成配置器
             genConfiguratorsFromRawRule(rawConfig);
         }
     }
@@ -56,8 +57,7 @@ public abstract class AbstractConfiguratorListener implements ConfigurationListe
     @Override
     public void process(ConfigChangedEvent event) {
         if (logger.isInfoEnabled()) {
-            logger.info("Notification of overriding rule, change type is: " + event.getChangeType() +
-                    ", raw config content is:\n " + event.getContent());
+            logger.info("Notification of overriding rule, change type is: " + event.getChangeType() + ", raw config content is:\n " + event.getContent());
         }
 
         if (event.getChangeType().equals(ConfigChangeType.DELETED)) {
@@ -75,11 +75,10 @@ public abstract class AbstractConfiguratorListener implements ConfigurationListe
         boolean parseSuccess = true;
         try {
             // parseConfigurators will recognize app/service config automatically.
-            configurators = Configurator.toConfigurators(ConfigParser.parseConfigurators(rawConfig))
-                    .orElse(configurators);
+            // 将 rawConfig 字符串翻译成 List<Configurator> = configurators 对象
+            configurators = Configurator.toConfigurators(ConfigParser.parseConfigurators(rawConfig)).orElse(configurators);
         } catch (Exception e) {
-            logger.error("Failed to parse raw dynamic config and it will not take effect, the raw config is: " +
-                    rawConfig, e);
+            logger.error("Failed to parse raw dynamic config and it will not take effect, the raw config is: " + rawConfig, e);
             parseSuccess = false;
         }
         return parseSuccess;

@@ -170,6 +170,13 @@ public class ZookeeperRegistry extends FailbackRegistry {
                 }
             } else {
                 List<URL> urls = new ArrayList<>();
+                /**
+                 * 循环路径目录,分别绑定监听器
+                 * /dubbo/com.future.dubbo.service.Hello/providers
+                 * /dubbo/com.future.dubbo.service.Hello/consumers
+                 * /dubbo/com.future.dubbo.service.Hello/routers
+                 * /dubbo/com.future.dubbo.service.Hello/configurators
+                 */
                 for (String path : toCategoriesPath(url)) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.computeIfAbsent(url, k -> new ConcurrentHashMap<>());
                     ChildListener zkListener = listeners.computeIfAbsent(listener, k -> (parentPath, currentChilds) -> ZookeeperRegistry.this.notify(url, k, toUrlsWithEmpty(url, parentPath, currentChilds)));
@@ -179,6 +186,10 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
+                /**
+                 * 触发监听
+                 * @see FailbackRegistry#notify(org.apache.dubbo.common.URL, org.apache.dubbo.registry.NotifyListener, java.util.List)
+                 */
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {
@@ -245,6 +256,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
     private String[] toCategoriesPath(URL url) {
         String[] categories;
         if (ANY_VALUE.equals(url.getParameter(CATEGORY_KEY))) {
+            // providers,consumers,routers,configurators
             categories = new String[]{PROVIDERS_CATEGORY, CONSUMERS_CATEGORY, ROUTERS_CATEGORY, CONFIGURATORS_CATEGORY};
         } else {
             categories = url.getParameter(CATEGORY_KEY, new String[]{DEFAULT_CATEGORY});

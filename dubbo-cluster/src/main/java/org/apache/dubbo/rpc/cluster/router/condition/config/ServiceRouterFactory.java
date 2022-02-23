@@ -23,6 +23,9 @@ import org.apache.dubbo.rpc.cluster.Router;
 
 /**
  * Service level router factory
+ * 服务条件路由
+ *
+ * 设置优先级: this.priority = SERVICE_ROUTER_DEFAULT_PRIORITY = 140;
  */
 @Activate(order = 300)
 public class ServiceRouterFactory extends CacheableRouterFactory {

@@ -333,8 +333,12 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         super.subscribe(url, listener);
         removeFailedSubscribed(url, listener);
         try {
-            // Sending a subscription request to the server side
-            doSubscribe(url, listener);
+            /**
+             * 向服务器端发送订阅请求
+             * Sending a subscription request to the server side
+             * @see org.apache.dubbo.registry.zookeeper.ZookeeperRegistry#doSubscribe(org.apache.dubbo.common.URL, org.apache.dubbo.registry.NotifyListener)
+             */
+            doSubscribe(url , listener);
         } catch (Exception e) {
             Throwable t = e;
 
@@ -399,6 +403,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             throw new IllegalArgumentException("notify listener == null");
         }
         try {
+            // 执行监听
             doNotify(url, listener, urls);
         } catch (Exception t) {
             // Record a failed registration request to a failed list, retry regularly

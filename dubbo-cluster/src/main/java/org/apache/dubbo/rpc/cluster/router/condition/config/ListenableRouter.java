@@ -52,26 +52,30 @@ public abstract class ListenableRouter extends AbstractRouter implements Configu
     public ListenableRouter(URL url, String ruleKey) {
         super(url);
         this.force = false;
+        // 初始化方法
         this.init(ruleKey);
     }
 
     @Override
     public synchronized void process(ConfigChangedEvent event) {
         if (logger.isInfoEnabled()) {
-            logger.info("Notification of condition rule, change type is: " + event.getChangeType() +
-                    ", raw rule is:\n " + event.getContent());
+            logger.info("Notification of condition rule, change type is: " + event.getChangeType() + ", raw rule is:\n " + event.getContent());
         }
 
+        // 如果事件为删除事件,则删除
         if (event.getChangeType().equals(ConfigChangeType.DELETED)) {
             routerRule = null;
             conditionRouters = Collections.emptyList();
-        } else {
+        }
+        // 不为删除事件
+        else {
             try {
+                // 解析规则,将 yaml 格式的规则,翻译成 ConditionRouterRule 对象
                 routerRule = ConditionRuleParser.parse(event.getContent());
+                // 生成条件,给 conditionRouters 集合填充数据
                 generateConditions(routerRule);
             } catch (Exception e) {
-                logger.error("Failed to parse the raw condition rule and it will not take effect, please check " +
-                        "if the condition rule matches with the template, the raw rule is:\n " + event.getContent(), e);
+                logger.error("Failed to parse the raw condition rule and it will not take effect, please check " + "if the condition rule matches with the template, the raw rule is:\n " + event.getContent(), e);
             }
         }
     }
@@ -118,9 +122,13 @@ public abstract class ListenableRouter extends AbstractRouter implements Configu
             return;
         }
         String routerKey = ruleKey + RULE_SUFFIX;
+        // 添加监听器,用于监听条件路由
+        // config/dubbo/com.future.dubbo.service.Hello::.condition-router
         ruleRepository.addListener(routerKey, this);
+        // 从该路径获取监听规则
         String rule = ruleRepository.getRule(routerKey, DynamicConfiguration.DEFAULT_GROUP);
         if (StringUtils.isNotEmpty(rule)) {
+            // 监听配置改变
             this.process(new ConfigChangedEvent(routerKey, DynamicConfiguration.DEFAULT_GROUP, rule));
         }
     }
