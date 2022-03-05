@@ -100,6 +100,7 @@ public class RouterChain<T> {
     public List<Invoker<T>> route(URL url, Invocation invocation) {
         List<Invoker<T>> finalInvokers = invokers;
         for (Router router : routers) {
+            // 所有服务提供者,经过路由规则路由之后,才会返回最终的 invokers
             finalInvokers = router.route(finalInvokers, url, invocation);
         }
         return finalInvokers;
@@ -108,6 +109,7 @@ public class RouterChain<T> {
     /**
      * Notify router chain of the initial addresses from registry at the first time.
      * Notify whenever addresses in registry change.
+     * 类似于初始化,将配置的信息翻译成路由规则
      */
     public void setInvokers(List<Invoker<T>> invokers) {
         this.invokers = (invokers == null ? Collections.emptyList() : invokers);

@@ -45,6 +45,7 @@ import org.apache.dubbo.rpc.cluster.Cluster;
 import org.apache.dubbo.rpc.cluster.directory.StaticDirectory;
 import org.apache.dubbo.rpc.cluster.support.ClusterUtils;
 import org.apache.dubbo.rpc.cluster.support.registry.ZoneAwareCluster;
+import org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.apache.dubbo.rpc.model.AsyncMethodInfo;
 import org.apache.dubbo.rpc.model.ConsumerModel;
@@ -358,7 +359,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             // 生成本地引用 URL,协议为 injvm
             URL url = new URL(LOCAL_PROTOCOL, LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
             /**
-             * 调用 refer 方法构建 InjvmInvoker 实例
+             * 调用 refer 方法构建 InjvmInvoker 实例,根据协议头找到 RegistryProtocol
              * @see RegistryProtocol#refer(java.lang.Class, org.apache.dubbo.common.URL)
              */
             invoker = REF_PROTOCOL.refer(interfaceClass, url);
@@ -478,8 +479,15 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             metadataService.publishServiceDefinition(consumerURL);
         }
 
-        // 生成代理类
-        // create service proxy
+        /**
+         * create service proxy
+         * 生成代理类
+         *
+         * 也就是说这里的 invoker 为 MockClusterInvoker
+         * @see MockClusterInvoker
+         * Invoker<T> invoker = cluster.join(directory);
+         * @see RegistryProtocol#doRefer(org.apache.dubbo.rpc.cluster.Cluster, org.apache.dubbo.registry.Registry, java.lang.Class, org.apache.dubbo.common.URL)
+         */
         return (T) PROXY_FACTORY.getProxy(invoker, ProtocolUtils.isGeneric(generic));
     }
 

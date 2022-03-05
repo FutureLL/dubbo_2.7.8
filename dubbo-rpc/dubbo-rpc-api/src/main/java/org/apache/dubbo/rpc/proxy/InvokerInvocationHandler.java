@@ -43,13 +43,27 @@ public class InvokerInvocationHandler implements InvocationHandler {
         }
     }
 
+    /**
+     * TODO 服务调用入口
+     *
+     * @param proxy
+     * @param method
+     * @param args
+     * @return
+     * @throws Throwable
+     */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+        // 拦截定义在 Object 类中的方法（未被子类重写），比如 wait/notify
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
+
         String methodName = method.getName();
         Class<?>[] parameterTypes = method.getParameterTypes();
+
+        // 如果 toString、hashCode 和 equals 等方法被子类重写了，这里也直接调用
         if (parameterTypes.length == 0) {
             if ("toString".equals(methodName)) {
                 return invoker.toString();
@@ -62,6 +76,8 @@ public class InvokerInvocationHandler implements InvocationHandler {
         } else if (parameterTypes.length == 1 && "equals".equals(methodName)) {
             return invoker.equals(args[0]);
         }
+
+        // 将参数,接口以及方法名传入,用来构建 RpcInvocation 对象
         RpcInvocation rpcInvocation = new RpcInvocation(method, invoker.getInterface().getName(), args);
         String serviceKey = invoker.getUrl().getServiceKey();
         rpcInvocation.setTargetServiceUniqueName(serviceKey);
@@ -71,6 +87,10 @@ public class InvokerInvocationHandler implements InvocationHandler {
             rpcInvocation.put(Constants.METHOD_MODEL, consumerModel.getMethodModel(method));
         }
 
+        /**
+         * invoker: 这个 invoker 表示 MockClusterInvoker 代理对象
+         * @see org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker#invoke(org.apache.dubbo.rpc.Invocation)
+         */
         return invoker.invoke(rpcInvocation).recreate();
     }
 }

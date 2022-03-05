@@ -249,14 +249,20 @@ public abstract class AbstractClusterInvoker<T> implements ClusterInvoker<T> {
         checkWhetherDestroyed();
 
         // binding attachments into invocation.
+        // 查看线程变量 InternalThreadLocal 中获取上下文对象 RpcContext,查看 RpcContext 中是否有"附件"属性,
+        // 如果有,则本次调用 invocation 加入该属性
         Map<String, Object> contextAttachments = RpcContext.getContext().getObjectAttachments();
         if (contextAttachments != null && contextAttachments.size() != 0) {
             ((RpcInvocation) invocation).addObjectAttachments(contextAttachments);
         }
 
+        // 从 directory 服务目录中获取 invokers list(查看 directory 对象,该 list 可通过 notify 方法与注册中心交互更新)
+        // 经过路由后最终符合路由规则的所有服务提供者
         List<Invoker<T>> invokers = list(invocation);
+        // 初始化负载均衡
         LoadBalance loadbalance = initLoadBalance(invokers, invocation);
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
+        // 执行子类 doInvoke() 方法
         return doInvoke(invocation, invokers, loadbalance);
     }
 
@@ -289,6 +295,11 @@ public abstract class AbstractClusterInvoker<T> implements ClusterInvoker<T> {
                                        LoadBalance loadbalance) throws RpcException;
 
     protected List<Invoker<T>> list(Invocation invocation) throws RpcException {
+        /**
+         * 最终执行的是 RegistryDirectory 类的 doList() 方法
+         * @see org.apache.dubbo.registry.integration.RegistryDirectory#doList(org.apache.dubbo.rpc.Invocation)
+         */
+        // 得到经过路由后最终可用且符合规则的 Invoker 集合
         return directory.list(invocation);
     }
 
@@ -305,6 +316,7 @@ public abstract class AbstractClusterInvoker<T> implements ClusterInvoker<T> {
      */
     protected LoadBalance initLoadBalance(List<Invoker<T>> invokers, Invocation invocation) {
         if (CollectionUtils.isNotEmpty(invokers)) {
+            // 获取负载均衡策略,未配置则默认随机策略 RandomLoadBalance
             return ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(invokers.get(0).getUrl()
                     .getMethodParameter(RpcUtils.getMethodName(invocation), LOADBALANCE_KEY, DEFAULT_LOADBALANCE));
         } else {

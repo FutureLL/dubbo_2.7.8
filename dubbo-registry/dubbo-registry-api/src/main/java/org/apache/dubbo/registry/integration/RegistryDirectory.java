@@ -99,8 +99,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     private static final Cluster CLUSTER = ExtensionLoader.getExtensionLoader(Cluster.class).getAdaptiveExtension();
 
-    private static final RouterFactory ROUTER_FACTORY = ExtensionLoader.getExtensionLoader(RouterFactory.class)
-            .getAdaptiveExtension();
+    private static final RouterFactory ROUTER_FACTORY = ExtensionLoader.getExtensionLoader(RouterFactory.class).getAdaptiveExtension();
 
     private final String serviceKey; // Initialization at construction time, assertion not null
     private final Class<T> serviceType; // Initialization at construction time, assertion not null
@@ -127,6 +126,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     // Map<url, Invoker> cache service url to invoker mapping.
     private volatile Map<String, Invoker<T>> urlInvokerMap; // The initial value is null and the midway may be assigned to null, please use the local variable reference
+
+    /** 多个提供者 */
     private volatile List<Invoker<T>> invokers;
 
     // Set<invokerUrls> cache invokeUrls to invokers mapping.
@@ -257,7 +258,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         // addRouters(): 将路由规则添加到路由链中
         toRouters(routerURLs).ifPresent(this::addRouters);
 
-        // 获取到 com.future.dubbo.service.Hello/providers/ 路径
+        // 获取到 com.future.dubbo.service.Hello/providers/ 路径,也就是服务提供者
         List<URL> providerURLs = categoryUrls.getOrDefault(PROVIDERS_CATEGORY, Collections.emptyList());
         // Dubbo 3.x added for extend URL address
         // 监听器扩展加载程序: 获取 AddressListener
@@ -349,7 +350,9 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 return;
             }
             // Translate url list to Invoker map
-            // 将 url 转成 Invoker
+            // ************************
+            // ** 将 url 转成 Invoker **
+            // ************************
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);
 
             /**
@@ -372,7 +375,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             // pre-route 及构建 cache,请注意,路由缓存应该建立在原始 Invoker 列表上。
             // toMergeMethodInvokerMap(): 将包装一些具有不同组的调用者,那些包装的调用者不应该被路由。
             routerChain.setInvokers(newInvokers);
-            // 合并多个组的 Invoker
+            // 合并多个组的 Invoker,代表的是所有的服务提供者
+            // 这里的 invokers 为 InvokerDelegate 对象
             this.invokers = multiGroup ? toMergeInvokerList(newInvokers) : newInvokers;
             this.urlInvokerMap = newUrlInvokerMap;
 
@@ -527,6 +531,9 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                          * @see org.apache.dubbo.rpc.protocol.http.HttpProtocol
                          * 执行父类的 refer(),最终会走到 HttpProtocol 的 doRefer()
                          * @see org.apache.dubbo.rpc.protocol.http.HttpProtocol#doRefer(java.lang.Class, org.apache.dubbo.common.URL)
+                         *
+                         * InvokerDelegate 也实现了 Invoker 接口,因此 InvokerDelegate 也有一个自己的 invoke() 方法
+                         * @see InvokerWrapper#invoke(org.apache.dubbo.rpc.Invocation)
                          */
                         invoker = new InvokerDelegate<>(protocol.refer(serviceType, url), url, providerUrl);
                     }
@@ -688,6 +695,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         List<Invoker<T>> invokers = null;
         try {
             // Get invokers from cache, only runtime routers will be executed.
+            // 通过路由链,从缓存中获取调用程序
             invokers = routerChain.route(getConsumerUrl(), invocation);
         } catch (Throwable t) {
             logger.error("Failed to execute router: " + getUrl() + ", cause: " + t.getMessage(), t);

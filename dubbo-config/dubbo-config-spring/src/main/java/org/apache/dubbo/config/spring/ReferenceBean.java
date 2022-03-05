@@ -65,6 +65,9 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
 
     /**
      * TODO 服务引用的入口方法
+     *
+     * 就是 @Reference 的使用
+     *
      * 该方法定义在 Spring 的 FactoryBean 接口中,ReferenceBean 实现了这个方法
      *
      * 整个分析过程从 ReferenceBean 的 getObject 方法开始.

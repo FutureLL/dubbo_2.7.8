@@ -56,15 +56,20 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(Invocation invocation, final List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         List<Invoker<T>> copyInvokers = invokers;
+        // 检查 invokers,为空则抛出异常 RpcException
         checkInvokers(copyInvokers, invocation);
         String methodName = RpcUtils.getMethodName(invocation);
+        // 获取重试次数,默认是2次
         int len = getUrl().getMethodParameter(methodName, RETRIES_KEY, DEFAULT_RETRIES) + 1;
+        // 如果配置不当,则将次数置为1
         if (len <= 0) {
             len = 1;
         }
         // retry loop.
-        RpcException le = null; // last exception.
-        List<Invoker<T>> invoked = new ArrayList<Invoker<T>>(copyInvokers.size()); // invoked invokers.
+        // last exception.
+        RpcException le = null;
+        // invoked invokers.
+        List<Invoker<T>> invoked = new ArrayList<Invoker<T>>(copyInvokers.size());
         Set<String> providers = new HashSet<String>(len);
         for (int i = 0; i < len; i++) {
             //Reselect before retry to avoid a change of candidate `invokers`.
@@ -73,12 +78,16 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 checkWhetherDestroyed();
                 copyInvokers = list(invocation);
                 // check again
+                // 再一次检查,防止在调用过程中 list 中的 invoker 变化
                 checkInvokers(copyInvokers, invocation);
             }
+            // 通过不同的负载均衡策略选择一个 invoker
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
+            // 将已经选择出的 invoker 存放在另一个 list 中
             invoked.add(invoker);
             RpcContext.getContext().setInvokers((List) invoked);
             try {
+                // 发起调用
                 Result result = invoker.invoke(invocation);
                 if (le != null && logger.isWarnEnabled()) {
                     logger.warn("Although retry the method " + methodName
@@ -93,7 +102,8 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 }
                 return result;
             } catch (RpcException e) {
-                if (e.isBiz()) { // biz exception.
+                // biz exception.
+                if (e.isBiz()) {
                     throw e;
                 }
                 le = e;

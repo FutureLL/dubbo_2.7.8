@@ -927,7 +927,6 @@ public class DubboBootstrap extends GenericEventListener {
                 registerServiceInstance();
             }
 
-            // TODO 服务引用
             referServices();
             if (asyncExportingFutures.size() > 0) {
                 new Thread(() -> {

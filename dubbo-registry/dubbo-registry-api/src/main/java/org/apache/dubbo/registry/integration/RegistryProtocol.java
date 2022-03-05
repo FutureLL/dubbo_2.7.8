@@ -45,6 +45,7 @@ import org.apache.dubbo.rpc.cluster.Cluster;
 import org.apache.dubbo.rpc.cluster.Configurator;
 import org.apache.dubbo.rpc.cluster.governance.GovernanceRuleRepository;
 import org.apache.dubbo.rpc.cluster.support.MergeableCluster;
+import org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterWrapper;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.apache.dubbo.rpc.model.ProviderModel;
 import org.apache.dubbo.rpc.protocol.InvokerWrapper;
@@ -514,7 +515,7 @@ public class RegistryProtocol implements Protocol {
         }
         // 建立路由规则链,即解析并设置了 routerChain 属性
         /**
-         * 下边四个信息是消费端需要坚挺的目录:
+         * 下边四个信息是消费端需要监听的目录:
          * 1. 条件路由
          *      1.1 针对单个服务      config/dubbo/com.future.dubbo.service.Hello::.condition-router
          *      1.2 针对单个应用
@@ -526,8 +527,14 @@ public class RegistryProtocol implements Protocol {
         // 订阅 providers,configurators,routers 节点数据
         directory.subscribe(toSubscribeUrl(subscribeUrl));
 
-        // 包装机器容错机制到 invoker
-        // 一个注册中心可能有多个服务提供者,因此这里需要将多个服务提供者合并为一
+        /**
+         * 包装机器容错机制到 invoker
+         * 一个注册中心可能有多个服务提供者,因此这里需要将多个服务提供者合并为一
+         *
+         * 执行 cluster.join() 会先执行 MockClusterWrapper 包装类的 join() 方法
+         * @see MockClusterWrapper#join(org.apache.dubbo.rpc.cluster.Directory)
+         * 得到的 invoker = new MockClusterInvoker();
+         */
         Invoker<T> invoker = cluster.join(directory);
         List<RegistryProtocolListener> listeners = findRegistryProtocolListeners(url);
         if (CollectionUtils.isEmpty(listeners)) {

@@ -29,6 +29,8 @@ import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.RpcInvocation;
 import org.apache.dubbo.rpc.cluster.ClusterInvoker;
 import org.apache.dubbo.rpc.cluster.Directory;
+import org.apache.dubbo.rpc.cluster.support.AbstractClusterInvoker;
+import org.apache.dubbo.rpc.cluster.support.FailoverClusterInvoker;
 import org.apache.dubbo.rpc.support.MockInvoker;
 
 import java.util.List;
@@ -82,27 +84,44 @@ public class MockClusterInvoker<T> implements ClusterInvoker<T> {
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
 
+        // 获取 mock 配置值
         String value = getUrl().getMethodParameter(invocation.getMethodName(), MOCK_KEY, Boolean.FALSE.toString()).trim();
         if (value.length() == 0 || "false".equalsIgnoreCase(value)) {
-            //no mock
+            // no mock
+            /**
+             * 无 mock 逻辑,直接调用其他 Invoker 对象的 invoke 方法
+             *
+             * 先调用父类的 invoke() 方法
+             * @see AbstractClusterInvoker#invoke(org.apache.dubbo.rpc.Invocation)
+             *
+             * 这里的 invoker 对应的是 FailoverClusterInvoker
+             * @see FailoverClusterInvoker 的 doInvoke() 方法
+             */
             result = this.invoker.invoke(invocation);
         } else if (value.startsWith("force")) {
             if (logger.isWarnEnabled()) {
                 logger.warn("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + getUrl());
             }
-            //force:direct mock
+            // force:direct mock
+            // force:xxx 直接执行 mock 逻辑,不发起远程调用
+            // 例如: force:return 1,就会强制返回 1
             result = doMockInvoke(invocation, null);
         } else {
-            //fail-mock
+            // fail-mock
+            // fail:xxx 表示消费方对调用服务失败后,再执行 mock 逻辑,不抛出异常
             try {
+                /**
+                 * 思路同上
+                 */
                 result = this.invoker.invoke(invocation);
 
-                //fix:#4585
+                // fix:#4585
                 if(result.getException() != null && result.getException() instanceof RpcException){
                     RpcException rpcException= (RpcException)result.getException();
                     if(rpcException.isBiz()){
-                        throw  rpcException;
+                        throw rpcException;
                     }else {
+                        // 调用失败,执行 mock 逻辑
                         result = doMockInvoke(invocation, rpcException);
                     }
                 }
@@ -126,16 +145,23 @@ public class MockClusterInvoker<T> implements ClusterInvoker<T> {
         Result result = null;
         Invoker<T> minvoker;
 
+        // 调用 selectMockInvoker() 方法过滤得到 MockInvoker
         List<Invoker<T>> mockInvokers = selectMockInvoker(invocation);
         if (CollectionUtils.isEmpty(mockInvokers)) {
+            // 如果 selectMockInvoker() 方法未返回 MockInvoker 对象,则创建一个 MockInvoker
             minvoker = (Invoker<T>) new MockInvoker(getUrl(), directory.getInterface());
         } else {
             minvoker = mockInvokers.get(0);
         }
         try {
+            /**
+             * 调用 MockInvoker.invoke() 方法进行 mock
+             * @see MockInvoker#invoke(org.apache.dubbo.rpc.Invocation)
+             */
             result = minvoker.invoke(invocation);
         } catch (RpcException me) {
             if (me.isBiz()) {
+                // 如果是业务异常,则在 Result 中设置该异常
                 result = AsyncRpcResult.newDefaultAsyncResult(me.getCause(), invocation);
             } else {
                 throw new RpcException(me.getCode(), getMockExceptionMessage(e, me), me.getCause());
@@ -167,9 +193,10 @@ public class MockClusterInvoker<T> implements ClusterInvoker<T> {
         List<Invoker<T>> invokers = null;
         //TODO generic invoker？
         if (invocation instanceof RpcInvocation) {
-            //Note the implicit contract (although the description is added to the interface declaration, but extensibility is a problem. The practice placed in the attachment needs to be improved)
+            // Note the implicit contract (although the description is added to the interface declaration, but extensibility is a problem. The practice placed in the attachment needs to be improved)
+            // 将 Invocation 附属信息中的 invocation.need.mock 属性设置为 true
             ((RpcInvocation) invocation).setAttachment(INVOCATION_NEED_MOCK, Boolean.TRUE.toString());
-            //directory will return a list of normal invokers if Constants.INVOCATION_NEED_MOCK is present in invocation, otherwise, a list of mock invokers will return.
+            // directory will return a list of normal invokers if Constants.INVOCATION_NEED_MOCK is present in invocation, otherwise, a list of mock invokers will return.
             try {
                 invokers = directory.list(invocation);
             } catch (RpcException e) {
