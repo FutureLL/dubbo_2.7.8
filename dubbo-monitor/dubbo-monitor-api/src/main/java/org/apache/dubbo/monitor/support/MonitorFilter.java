@@ -84,12 +84,20 @@ public class MonitorFilter implements Filter, Filter.Listener {
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         if (invoker.getUrl().hasParameter(MONITOR_KEY)) {
             invocation.put(MONITOR_FILTER_START_TIME, System.currentTimeMillis());
-            getConcurrent(invoker, invocation).incrementAndGet(); // count up
+            // count up
+            getConcurrent(invoker, invocation).incrementAndGet();
         }
-        return invoker.invoke(invocation); // proceed invocation chain
+        // proceed invocation chain
+        return invoker.invoke(invocation);
     }
 
-    // concurrent counter
+    /**
+     * concurrent counter
+     *
+     * @param invoker
+     * @param invocation
+     * @return
+     */
     private AtomicInteger getConcurrent(Invoker<?> invoker, Invocation invocation) {
         String key = invoker.getInterface().getName() + "." + invocation.getMethodName();
         return concurrents.computeIfAbsent(key, k -> new AtomicInteger());
@@ -113,6 +121,7 @@ public class MonitorFilter implements Filter, Filter.Listener {
 
     /**
      * The collector logic, it will be handled by the default monitor
+     * 收集器逻辑,它将由默认监视器处理
      *
      * @param invoker
      * @param invocation

@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import static org.apache.dubbo.common.constants.CommonConstants.COMMA_SPLIT_PATTERN;
 
 /**
+ * 一致性 Hash 负载均衡
  * ConsistentHashLoadBalance
  */
 public class ConsistentHashLoadBalance extends AbstractLoadBalance {

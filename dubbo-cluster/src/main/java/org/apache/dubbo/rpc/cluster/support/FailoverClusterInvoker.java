@@ -27,6 +27,7 @@ import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.cluster.Directory;
 import org.apache.dubbo.rpc.cluster.LoadBalance;
+import org.apache.dubbo.rpc.protocol.InvokerWrapper;
 import org.apache.dubbo.rpc.support.RpcUtils;
 
 import java.util.ArrayList;
@@ -83,10 +84,17 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
             }
             // 通过不同的负载均衡策略选择一个 invoker
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
-            // 将已经选择出的 invoker 存放在另一个 list 中
+            // 将已经被调用过的 invoker 存放在另一个 list 中
             invoked.add(invoker);
             RpcContext.getContext().setInvokers((List) invoked);
             try {
+                /**
+                 * 找到的 invoker 到底是什么?
+                 * 服务目录中的某个 invoke,也就是 InvokerDelegate 对象
+                 * @see org.apache.dubbo.registry.integration.RegistryProtocol.InvokerDelegate
+                 * InvokerDelegate 继承了 InvokerWrapper 类,执行父类的 invoke() 方法
+                 * @see InvokerWrapper#invoke(org.apache.dubbo.rpc.Invocation)
+                 */
                 // 发起调用
                 Result result = invoker.invoke(invocation);
                 if (le != null && logger.isWarnEnabled()) {

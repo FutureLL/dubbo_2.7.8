@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * 轮询负载均衡
  * Round robin load balance.
  */
 public class RoundRobinLoadBalance extends AbstractLoadBalance {
