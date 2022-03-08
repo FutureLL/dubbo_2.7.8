@@ -79,27 +79,34 @@ public class HttpProtocol extends AbstractProxyProtocol {
         }
 
         @Override
-        public void handle(HttpServletRequest request, HttpServletResponse response)
-                throws ServletException {
+        public void handle(HttpServletRequest request, HttpServletResponse response) throws ServletException {
             String uri = request.getRequestURI();
+            /**
+             * 得到一个实现类,在服务启动时进行添加
+             * @see HttpProtocol#doExport(java.lang.Object, java.lang.Class, org.apache.dubbo.common.URL)
+             * skeletonMap.put(path, skeleton);
+             */
             JsonRpcServer skeleton = skeletonMap.get(uri);
+            // 处理跨域问题
             if (cors) {
                 response.setHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
                 response.setHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER, "POST");
                 response.setHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER, "*");
             }
             if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
+                // 处理 OPTIONS 请求
                 response.setStatus(200);
             } else if (request.getMethod().equalsIgnoreCase("POST")) {
-
+                // 只处理 POST 请求
                 RpcContext.getContext().setRemoteAddress(request.getRemoteAddr(), request.getRemotePort());
                 try {
-                    // 处理请求 & 结果返回
+                    // 采用 JSON 序列化
                     skeleton.handle(request.getInputStream(), response.getOutputStream());
                 } catch (Throwable e) {
                     throw new ServletException(e);
                 }
             } else {
+                // 其他 METHOD 类型的请求,例如: GET 请求,直接返回500
                 response.setStatus(500);
             }
         }
@@ -125,6 +132,11 @@ public class HttpProtocol extends AbstractProxyProtocol {
         final String genericPath = path + "/" + GENERIC_KEY;
         JsonRpcServer skeleton = new JsonRpcServer(impl, type);
         JsonRpcServer genericServer = new JsonRpcServer(impl, GenericService.class);
+        /**
+         * 简单理解 skeletonMap Map 中添加了 实现类
+         * @see InternalHandler#handle(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+         * JsonRpcServer skeleton = skeletonMap.get(uri);
+         */
         skeletonMap.put(path, skeleton);
         skeletonMap.put(genericPath, genericServer);
         return () -> {

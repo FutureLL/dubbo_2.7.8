@@ -51,13 +51,27 @@ public class DispatcherServlet extends HttpServlet {
         return INSTANCE;
     }
 
+    /**
+     * TODO HTTP 调用
+     * HttpServlet 在收到 GET 和 POST 请求的时候,最终会调用其 service() 方法进行处理
+     * HttpServlet 还会将 HTTP 请求和响应封装成 HttpServletRequest 和 HttpServletResponse 传入 service() 方法之中
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
     @Override
-    protected void service(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpHandler handler = HANDLERS.get(request.getLocalPort());
-        if (handler == null) {// service not found.
+        // service not found.
+        if (handler == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Service not found.");
         } else {
+            /**
+             * 处理请求
+             * @see org.apache.dubbo.rpc.protocol.http.HttpProtocol.InternalHandler#handle(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+             */
             handler.handle(request, response);
         }
     }

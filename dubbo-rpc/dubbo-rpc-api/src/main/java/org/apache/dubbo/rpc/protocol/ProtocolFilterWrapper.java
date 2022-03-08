@@ -30,6 +30,9 @@ import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.ProtocolServer;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
+import org.apache.dubbo.rpc.filter.EchoFilter;
+import org.apache.dubbo.rpc.filter.ExceptionFilter;
+import org.apache.dubbo.rpc.filter.TimeoutFilter;
 
 import java.util.List;
 
@@ -54,6 +57,21 @@ public class ProtocolFilterWrapper implements Protocol {
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
         Invoker<T> last = invoker;
         // 获取到拦截器
+        /**
+         * 服务端在执行一个实现类之前,需要经过的 Filter 有8个
+         * 0 = {EchoFilter@6460}
+         * @see EchoFilter
+         * 1 = {ClassLoaderFilter@6461}
+         * 2 = {GenericFilter@6462}
+         * 3 = {ContextFilter@6463}
+         * 4 = {TraceFilter@6464}
+         * 5 = {TimeoutFilter@6465}
+         * @see TimeoutFilter
+         * 6 = {MonitorFilter@6466}
+         * @see org.apache.dubbo.monitor.support.MonitorFilter
+         * 7 = {ExceptionFilter@6467}
+         * @see ExceptionFilter
+         */
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
 
         if (!filters.isEmpty()) {
